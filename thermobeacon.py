@@ -16,8 +16,6 @@
 
 from bluepy.btle import Scanner, DefaultDelegate
 from time import strftime
-import struct
-import subprocess
 
 #Enter the MAC address of the sensors
 SENSORS = {"02:0d:00:00:08:f3": "Garage" ,"02:0d:00:00:10:85" : "Garage2"}
