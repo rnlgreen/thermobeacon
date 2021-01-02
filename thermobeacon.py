@@ -31,7 +31,6 @@ def write_temp(where,what,value):
 
 #print("Establishing scanner...")
 scanner = Scanner().withDelegate(ScanDelegate())
-##myConnection = pymysql.connect (host=hostname, user=username, passwd=password, db=database)
 
 print ("-----------------------------------------------------------")
 
