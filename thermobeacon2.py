@@ -11,7 +11,7 @@ def convert_to_text(results):
     hex_results = []
     for v in range(len(results)):
         hex_results.append("{:x}".format(results[v]).zfill(2))
-    return " ".join(results_string)
+    return " ".join(hex_results)
 
 #Function to send a string to the device as a bytearray and return the results received
 def write_bytes(vals):
