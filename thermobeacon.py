@@ -48,7 +48,7 @@ print ("-----------------------------------------------------------")
 print (strftime("%Y-%m-%d %H:%M"))
 
 #How many times should we try the device scan to find all the sensors?
-retry_count = 5
+retry_count = 10
 
 sampled = {}
 try:
@@ -56,7 +56,6 @@ try:
         #print ("Initiating scan...")
         devices = scanner.scan(2.0)
 
-        ManuData = ""
         retry_count -= 1
 
         for dev in devices:
