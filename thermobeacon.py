@@ -47,15 +47,17 @@ scanner = Scanner().withDelegate(ScanDelegate())
 print ("-----------------------------------------------------------")
 print (strftime("%Y-%m-%d %H:%M"))
 
+#How many times should we try the device scan to find all the sensors?
+retry_count = 5
+
 sampled = {}
-ReadLoop = True
 try:
-    while (ReadLoop):
+    while (retry_count > 0 and len(sampled) < len(SENSORS)):
         #print ("Initiating scan...")
         devices = scanner.scan(2.0)
 
         ManuData = ""
-        retry = False
+        retry_count -= 1
 
         for dev in devices:
             if dev.addr in SENSORS and not dev.addr in sampled:
@@ -85,12 +87,8 @@ try:
                     write_temp(CurrentDevLoc,"Voltage",voltage)
                     write_temp(CurrentDevLoc,"UpTime",uptime_days)
                     sampled[CurrentDevAddr] = True
-                    if not retry:
-                        ReadLoop = False
                 else:
                     print ("Ignoring invalid data length for {}: {}".format(CurrentDevLoc,len(manufacturer_bytes)))
-                    retry = True
-                    ReadLoop = True
 
 except DecodeErrorException:
     print("Decode Exception")
