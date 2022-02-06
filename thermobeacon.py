@@ -1,11 +1,12 @@
 #!/usr/bin/python3 -u
 # thermobeacon.py - Simple bluetooth LE scanner and data extractor
 
-from bluepy.btle import Scanner, DefaultDelegate
+from bluepy.btle import Scanner, DefaultDelegate # pylint: disable=import-error
 from time import strftime
+import struct
 
 #Enter the MAC address of the sensors
-SENSORS = {"02:0d:00:00:08:f3": "Garage" ,"02:0d:00:00:10:85" : "Garage2"}
+SENSORS = {"02:0d:00:00:08:f3": "Loft" ,"02:0d:00:00:10:85" : "Study"}
 
 class DecodeErrorException(Exception):
      def __init__(self, value):
@@ -29,10 +30,22 @@ def write_temp(where,what,value):
 	with open("data.csv", "a") as log:
 		log.write("{0}:00,{1},{2},{3}\n".format(strftime("%Y-%m-%d %H:%M"),where,what,value))
 
+def convert_uptime(t):
+    # convert seconds to day, hour, minutes and seconds
+    days = t // (24 * 3600)
+    t = t % (24 * 3600)
+    hours = t // 3600
+    t %= 3600
+    minutes = t // 60
+    t %= 60
+    seconds = t
+    return "{} Days {} Hours {} Minutes {} Seconds".format(days,hours,minutes,seconds)
+
 #print("Establishing scanner...")
 scanner = Scanner().withDelegate(ScanDelegate())
 
 print ("-----------------------------------------------------------")
+print (strftime("%Y-%m-%d %H:%M"))
 
 sampled = {}
 ReadLoop = True
@@ -49,51 +62,39 @@ try:
                 #print ("Device %s (%s), RSSI=%d dB" % (dev.addr, dev.addrType, dev.rssi))
                 CurrentDevAddr = dev.addr
                 CurrentDevLoc = SENSORS[dev.addr]
-                for (adtype, desc, value) in dev.getScanData():
-                    #print ("  %s = %s" % (desc, value))
-                    if (desc == "Manufacturer"):
-                        ManuData = value
+                manufacturer_hex = next(value for _, desc, value in dev.getScanData() if desc == 'Manufacturer')
+                manufacturer_bytes = bytes.fromhex(manufacturer_hex)
 
-                if (ManuData == ""):
-                    print ("No data received, end decoding")
-                    continue
+                if len(manufacturer_bytes) == 20:
+                    e6, e5, e4, e3, e2, e1, voltage, temperature_raw, humidity_raw, uptime_seconds = struct.unpack('xxxxBBBBBBHHHI', manufacturer_bytes)
+            
+                    temperature_C = temperature_raw / 16.
+                    temperature_F = temperature_C * 9. / 5. + 32.
+      
+                    humidity_pct = humidity_raw / 16.
+            
+                    voltage = voltage / 1000
 
-                #print (ManuData)
-                
-                ManuDataHex = []
-                for i, j in zip (ManuData[::2], ManuData[1::2]):
-                    ManuDataHex.append(int(i+j, 16))
+                    uptime = convert_uptime(uptime_seconds)
 
-                if not len(ManuDataHex) == 20:
-                    print ("Ignoring invalid data length for {}: {}".format(CurrentDevLoc,len(ManuDataHex)))
+                    uptime_days = uptime_seconds / 86400
+
+                    print ("Device: {} Temperature: {} degC Humidity: {}% Uptime: {} sec Voltage: {}V".format(CurrentDevLoc,temperature_C,humidity_pct,uptime,voltage))
+                    write_temp(CurrentDevLoc,"Temperature",temperature_C)
+                    write_temp(CurrentDevLoc,"Humidity",humidity_pct)
+                    write_temp(CurrentDevLoc,"Voltage",voltage)
+                    write_temp(CurrentDevLoc,"UpTime",uptime_days)
+                    sampled[CurrentDevAddr] = True
+                    if not retry:
+                        ReadLoop = False
+                else:
+                    print ("Ignoring invalid data length for {}: {}".format(CurrentDevLoc,len(manufacturer_bytes)))
                     retry = True
                     ReadLoop = True
-                    continue
 
-                tempidx = 12
-                humidityidx = 14
-
-                TempData = ManuDataHex[tempidx]
-                TempData += ManuDataHex[tempidx+1] * 0x100
-                TempData = TempData * 0.0625
-                if TempData > 4000:
-                    TempData = -1 * (4096 - TempData)
-
-                HumidityData = ManuDataHex[humidityidx]
-                HumidityData += ManuDataHex[humidityidx+1] * 0x100
-                HumidityData = HumidityData * 0.0625
-
-                #print ("Device Address: " + CurrentDevAddr )
-                #print ("Device Location: " + CurrentDevLoc )
-                print ("Device: {} Temperature: {} Humidity: {}%".format(CurrentDevLoc,TempData,HumidityData))
-                write_temp(CurrentDevLoc,"Temperature",TempData)
-                write_temp(CurrentDevLoc,"Humidity",HumidityData)
-                sampled[CurrentDevAddr] = True
-                if not retry:
-                    ReadLoop = False
-    
 except DecodeErrorException:
     print("Decode Exception")
     pass
 
 print ("-----------------------------------------------------------")
+

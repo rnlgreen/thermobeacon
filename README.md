@@ -13,3 +13,6 @@ thermobeacon2.py connects to a specific device and uses specific bluetooth handl
 As discussed on this thread: https://www.raspberrypi.org/forums/viewtopic.php?f=91&t=283011
 
 You'll need to install the bluepy Python library (https://pypi.org/project/bluepy/).
+
+6th Feb 2022
+thermobeacon.py update with more elegant code (thanks fleminra), and now logs up time (in days) and battery voltage (hopefully, time will tell if this is what that field is)
