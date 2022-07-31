@@ -5,6 +5,14 @@ from bluepy.btle import Scanner, DefaultDelegate # pylint: disable=import-error
 from time import strftime
 import struct
 
+do_mqtt = True
+if do_mqtt:
+	import paho.mqtt.client as mqtt
+	mqttBroker ="pi3a2.rghome.local"
+	mqclient = mqtt.Client("Bluetooth_Monitor")
+	mqclient.connect(mqttBroker)
+
+
 #Enter the MAC address of the sensors
 SENSORS = {"02:0d:00:00:08:f3": "Loft" ,"02:0d:00:00:10:85" : "Study"}
 
@@ -86,6 +94,13 @@ try:
                     write_temp(CurrentDevLoc,"Voltage",voltage)
                     write_temp(CurrentDevLoc,"UpTime",uptime_days)
                     sampled[CurrentDevAddr] = True
+
+                    if do_mqtt:
+                        try:
+                            mqclient.publish(CurrentDevLoc,temperature_C)
+                        except Exception as e:
+                            print ("MQ send failed: {}".format(e))
+
                 else:
                     print ("Ignoring invalid data length for {}: {}".format(CurrentDevLoc,len(manufacturer_bytes)))
 
