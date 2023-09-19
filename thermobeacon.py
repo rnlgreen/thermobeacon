@@ -75,7 +75,7 @@ try:
                 manufacturer_bytes = bytes.fromhex(manufacturer_hex)
 
                 if len(manufacturer_bytes) == 20:
-                    e6, e5, e4, e3, e2, e1, voltage, temperature_raw, humidity_raw, uptime_seconds = struct.unpack('xxxxBBBBBBHHHI', manufacturer_bytes)
+                    e6, e5, e4, e3, e2, e1, voltage, temperature_raw, humidity_raw, uptime_seconds = struct.unpack('xxxxBBBBBBHhHI', manufacturer_bytes)
             
                     temperature_C = temperature_raw / 16.
                     temperature_F = temperature_C * 9. / 5. + 32.
